@@ -19,3 +19,70 @@ connector.execute(
 "CREATE TABLE IF NOT EXISTS SCHOOL_MANAGEMENT (STUDENT_ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, NAME TEXT, EMAIL TEXT, PHONE_NO TEXT, GENDER TEXT, DOB TEXT, STREAM TEXT)"
 )
 
+# Creating the functions
+def reset_fields():
+    global name_strvar, email_strvar, contact_strvar, gender_strvar, dob, stream_strvar
+
+    for i in ['name_strvar', 'email_strvar', 'contact_strvar', 'gender_strvar', 'stream_strvar']:
+        exec(f"{i}.set('')")
+    dob.set_date(datetime.datetime.now().date())
+
+
+def reset_form():
+    global tree
+    tree.delete(*tree.get_children())
+
+    reset_fields()
+
+
+def display_records():
+    tree.delete(*tree.get_children())
+
+    curr = connector.execute('SELECT * FROM SCHOOL_MANAGEMENT')
+    data = curr.fetchall()
+
+    for records in data:
+        tree.insert('', END, values=records)
+
+
+def add_record():
+    global name_strvar, email_strvar, contact_strvar, gender_strvar, dob, stream_strvar
+
+    name = name_strvar.get()
+    email = email_strvar.get()
+    contact = contact_strvar.get()
+    gender = gender_strvar.get()
+    DOB = dob.get_date()
+    stream = stream_strvar.get()
+
+    if not name or not email or not contact or not gender or not DOB or not stream:
+        mb.showerror('Error!', "Please fill all the missing fields!!")
+    else:
+        try:
+            connector.execute(
+            'INSERT INTO SCHOOL_MANAGEMENT (NAME, EMAIL, PHONE_NO, GENDER, DOB, STREAM) VALUES (?,?,?,?,?,?)', (name, email, contact, gender, DOB, stream)
+            )
+            connector.commit()
+            mb.showinfo('Record added', f"Record of {name} was successfully added")
+            reset_fields()
+            display_records()
+        except:
+            mb.showerror('Wrong type', 'The type of the values entered is not accurate. Pls note that the contact field can only contain numbers')
+
+
+def remove_record():
+    if not tree.selection():
+        mb.showerror('Error!', 'Please select an item from the database')
+    else:
+        current_item = tree.focus()
+        values = tree.item(current_item)
+        selection = values["values"]
+
+        tree.delete(current_item)
+
+        connector.execute('DELETE FROM SCHOOL_MANAGEMENT WHERE STUDENT_ID=%d' % selection[0])
+        connector.commit()
+
+        mb.showinfo('Done', 'The record you wanted deleted was successfully deleted.')
+
+        display_records()
